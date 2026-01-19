@@ -43,10 +43,10 @@ while [[ $# -gt 0 ]]; do
     --user) USER="$2"; shift 2;;
     --port) PORT="$2"; shift 2;;
     --identity) IDENTITY="$2"; shift 2;;
-      --dry-run) DRY_RUN=1; shift;;
-      --sshpass) USE_SSHPASS=1; shift;;
-      --ask-password) PROMPT_PASSWORD=1; shift;;
-      --interactive) INTERACTIVE=1; shift;;
+    --dry-run) DRY_RUN=1; shift;;
+    --sshpass) USE_SSHPASS=1; shift;;
+    --ask-password) PROMPT_PASSWORD=1; shift;;
+    --interactive) INTERACTIVE=1; shift;;
     --parallel) PARALLEL="$2"; shift 2;;
     -h|--help) usage; exit 0;;
     *) echo "Unknown arg: $1"; usage; exit 1;;
