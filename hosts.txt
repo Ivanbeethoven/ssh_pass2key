@@ -1,0 +1,4 @@
+# Example hosts list
+# one host per line, optionally host:port
+example.com
+192.0.2.10:2222

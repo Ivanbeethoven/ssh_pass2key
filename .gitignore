@@ -1,0 +1,3 @@
+.pass2key_secrets
+~/.ssh/id_ed25519
+pass2key.log
