@@ -8,6 +8,24 @@ Usage example:
 ./pass2key.sh --hosts hosts.txt --user ubuntu --dry-run
 ```
 
+Password automation (optional):
+
+- You can enable `sshpass` support with `--sshpass` and provide a password interactively using `--ask-password` (the script will prompt without echoing the password):
+
+```bash
+./pass2key.sh --hosts hosts.txt --user ubuntu --sshpass --ask-password
+```
+
+Security warning: using `sshpass` exposes credentials to the process environment and should only be used in controlled scenarios. Prefer interactive SSH key installation or a secure secret store.
+
+Run directly from the web (no clone required):
+
+```bash
+curl -sSL https://raw.githubusercontent.com/Ivanbeethoven/ssh_pass2key/master/pass2key.sh | bash -s -- --interactive
+```
+
+Be careful: piping scripts from the internet to `bash` executes code on your machine. Inspect the script before running in sensitive environments.
+
 hosts.txt format:
 
 - Each line is a host name or host:port

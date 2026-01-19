@@ -32,6 +32,10 @@ PORT=""
 IDENTITY=""
 DRY_RUN=0
 PARALLEL=1
+USE_SSHPASS=0
+PROMPT_PASSWORD=0
+PASSWORD=""
+INTERACTIVE=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -39,7 +43,10 @@ while [[ $# -gt 0 ]]; do
     --user) USER="$2"; shift 2;;
     --port) PORT="$2"; shift 2;;
     --identity) IDENTITY="$2"; shift 2;;
-    --dry-run) DRY_RUN=1; shift;;
+      --dry-run) DRY_RUN=1; shift;;
+      --sshpass) USE_SSHPASS=1; shift;;
+      --ask-password) PROMPT_PASSWORD=1; shift;;
+      --interactive) INTERACTIVE=1; shift;;
     --parallel) PARALLEL="$2"; shift 2;;
     -h|--help) usage; exit 0;;
     *) echo "Unknown arg: $1"; usage; exit 1;;
@@ -50,6 +57,31 @@ if [[ -z "$HOSTS_FILE" ]]; then
   echo "Please provide --hosts hosts.txt" >&2
   usage
   exit 1
+fi
+
+# If interactive mode or no hosts provided, enter interactive prompt loop
+if [[ $INTERACTIVE -eq 1 ]]; then
+  echo "Interactive mode: enter host, user and optional port. Empty host to finish."
+  while true; do
+    read -p "Host (host or host:port): " in_host
+    [[ -z "$in_host" ]] && break
+    read -p "Username (leave empty for current user): " in_user
+    read -p "Use password? (y/N): " yn
+    if [[ "$yn" =~ ^[Yy] ]]; then
+      if [[ $PROMPT_PASSWORD -ne 1 ]]; then
+        # if not already set to prompt, prompt now
+        read -s -p "Password: " PASSWORD
+        echo
+      else
+        read -s -p "Password: " PASSWORD
+        echo
+      fi
+      USE_SSHPASS=1
+    fi
+    append_key_to_host "$in_host" "$in_user" ""
+  done
+  echo "Interactive session finished."
+  exit 0
 fi
 
 if [[ -z "$IDENTITY" ]]; then
@@ -75,6 +107,15 @@ echo "Using public key: $IDENTITY"
 
 require_cmd ssh
 require_cmd ssh-copy-id || true
+if [[ $USE_SSHPASS -eq 1 ]]; then
+  require_cmd sshpass || { echo "sshpass required but not found" >&2; exit 3; }
+fi
+
+if [[ $PROMPT_PASSWORD -eq 1 ]]; then
+  # read password without echo
+  read -s -p "Password for remote hosts: " PASSWORD
+  echo
+fi
 
 append_key_to_host(){
   host="$1"
@@ -106,16 +147,27 @@ append_key_to_host(){
   # Try ssh-copy-id if available
   if command -v ssh-copy-id >/dev/null 2>&1; then
     echo "Using ssh-copy-id to install key"
-    if [[ -n "$PORT" || -n "$host_port" ]]; then
-      ssh-copy-id -i "$IDENTITY" -p "$host_port" "$ssh_target" || true
+    if [[ $USE_SSHPASS -eq 1 && -n "$PASSWORD" ]]; then
+      if [[ -n "$PORT" || -n "$host_port" ]]; then
+        sshpass -p "$PASSWORD" ssh-copy-id -i "$IDENTITY" -p "$host_port" "$ssh_target" || true
+      else
+        sshpass -p "$PASSWORD" ssh-copy-id -i "$IDENTITY" "$ssh_target" || true
+      fi
     else
-      ssh-copy-id -i "$IDENTITY" "$ssh_target" || true
+      if [[ -n "$PORT" || -n "$host_port" ]]; then
+        ssh-copy-id -i "$IDENTITY" -p "$host_port" "$ssh_target" || true
+      else
+        ssh-copy-id -i "$IDENTITY" "$ssh_target" || true
+      fi
     fi
   else
     echo "ssh-copy-id not available; using fallback via ssh and append"
     # make remote ~/.ssh and backup authorized_keys
-    ssh -p "$host_port" "$ssh_target" "mkdir -p ~/.ssh && chmod 700 ~/.ssh && touch ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys && grep -qF \"$PUBKEY_CONTENT\" ~/.ssh/authorized_keys || (cp ~/.ssh/authorized_keys ~/.ssh/authorized_keys.bak.
-$(date +%s) && echo '$PUBKEY_CONTENT' >> ~/.ssh/authorized_keys)"
+    if [[ $USE_SSHPASS -eq 1 && -n "$PASSWORD" ]]; then
+      sshpass -p "$PASSWORD" ssh -p "$host_port" "$ssh_target" "mkdir -p ~/.ssh && chmod 700 ~/.ssh && touch ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys && grep -qF \"$PUBKEY_CONTENT\" ~/.ssh/authorized_keys || (cp ~/.ssh/authorized_keys ~/.ssh/authorized_keys.bak.$(date +%s) && echo '$PUBKEY_CONTENT' >> ~/.ssh/authorized_keys)"
+    else
+      ssh -p "$host_port" "$ssh_target" "mkdir -p ~/.ssh && chmod 700 ~/.ssh && touch ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys && grep -qF \"$PUBKEY_CONTENT\" ~/.ssh/authorized_keys || (cp ~/.ssh/authorized_keys ~/.ssh/authorized_keys.bak.$(date +%s) && echo '$PUBKEY_CONTENT' >> ~/.ssh/authorized_keys)"
+    fi
   fi
 }
 
