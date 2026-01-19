@@ -26,6 +26,30 @@ curl -sSL https://raw.githubusercontent.com/Ivanbeethoven/ssh_pass2key/master/pa
 
 Be careful: piping scripts from the internet to `bash` executes code on your machine. Inspect the script before running in sensitive environments.
 
+Domestic mirrors / faster access in China:
+
+If GitHub is slow or blocked, use one of the following mirrors or the bundled `install.sh`:
+
+- ghproxy (example):
+
+```bash
+curl -sSL https://ghproxy.com/https://raw.githubusercontent.com/Ivanbeethoven/ssh_pass2key/master/pass2key.sh | bash -s -- --interactive
+```
+
+- fastgit (example):
+
+```bash
+curl -sSL https://fastgit.org/Ivanbeethoven/ssh_pass2key/raw/master/pass2key.sh | bash -s -- --interactive
+```
+
+Or run the helper which tries multiple mirrors and optionally executes:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/Ivanbeethoven/ssh_pass2key/master/install.sh | bash
+```
+
+Same caution: inspect downloaded script before executing.
+
 hosts.txt format:
 
 - Each line is a host name or host:port
